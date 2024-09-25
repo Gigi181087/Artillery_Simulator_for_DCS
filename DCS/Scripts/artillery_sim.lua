@@ -71,21 +71,21 @@ local function execute_simulated_shot(shot)
     }
     local caliber = shot["Caliber"]
 
-    if shot["Ammunition Type"] == "High Explosive" then
+    if shot["Ammunition Type"] == "high_explosive" then
         trigger.action.outText("Executing shot!", 5)
         trigger.action.explosion(coordinate3d, caliber)
     
-    elseif shot["Ammunition Type"] == "High Explosive Airburst" then
+    elseif shot["Ammunition Type"] == "high_explosive_air_burst" then
         trigger.action.outText("Executing Airburst!", 5)
         coordinate3d.y = coordinate3d.y + 30
         trigger.action.explosion(coordinate3d, caliber)
 
-    elseif shot["Ammunition Type"] == "Illumination" then
+    elseif shot["Ammunition Type"] == "illumination" then
         trigger.action.outText("Executing Illumination!", 5)
         coordinate3d.y = coordinate3d.y + 600
         trigger.action.illuminationBomb(coordinate3d)
 
-    elseif shot["Ammunition Type"] == "Smoke" then
+    elseif shot["Ammunition Type"] == "smoke" then
         trigger.action.outText("Executing Smoke!", 5)
         trigger.action.smoke(coordinate3d, trigger.smokeColor.White)
         

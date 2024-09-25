@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Formular</title>
+</head>
+<body>
+    <form method="POST" action="/submit">
+        <label for="grid">Grid:</label><br>
+        <input type="text" name="grid" required><br><br>
+
+        <label for="elevation">Elevation:</label><br>
+        <input type="number" name="elevation" required><br><br>
+
+        <label for="desired_effect">Desired Effect:</label><br>
+        <select name="desired_effect" id="desired_effect" required>
+            <option value="high_explosive">High Explosive</option>
+            <option value="high_explosive_air_burst">High Explosive Air Burst</option>
+            <option value="illumination">Illumination</option>
+            <option value="smoke">Smoke</option>
+        </select><br><br>
+
+        <label for="number_of_rounds">Number of Rounds:</label><br>
+        <input type="number" name="number_of_rounds" required><br><br>
+
+        <label for="number_of_guns">Number of Guns:</label><br>
+        <input type="number" name="number_of_guns" required><br><br>
+
+        <input type="submit" value="Send">
+    </form>
+</body>
+</html>
