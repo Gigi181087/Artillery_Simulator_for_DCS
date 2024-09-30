@@ -5,6 +5,7 @@ import threading
 import time
 
 from DCS_link.dcs_link import DCS_Link
+#from src.Submodules.Artillery_Sim.src.artillery_sim import ArtillerySim as arty
 import Webserver.main
 
 from numpy import random
@@ -25,46 +26,147 @@ def parse_coordinate(coordinate: str, system: str):
     
     return parts[0], parts[1]
 
+def simulate_gun(fire_order: dict) -> None:
+
+    for key, message in fire_order.items():
+    
+        if key == "fire_order":
+            number_of_rounds = message["number_of_rounds"]
+
+            for index in range(number_of_rounds):
+                location = {
+                    "system": message["target_location"]["system"],
+                    "coordinate": {
+                        "UTMZone": message["target_location"]["coordinate"]["UTMZone"],
+                        "MGRSDigraph": message["target_location"]["coordinate"]["MGRSDigraph"],
+                        "Easting": random.normal(message["target_location"]["coordinate"]["Easting"], 35),
+                        "Northing": random.normal(message["target_location"]["coordinate"]["Northing"], 35)
+                    },
+                    "elevation": message["target_location"]["elevation"]
+                }    
+                shot = {
+                    'Simulated Shot': {
+                        'time_fired': get_current_mission_time(),
+                        'location' : location,
+                        'time_of_flight': random.normal(15, 0.25),
+                        'ammunition_type': message["ammunition"],
+                        "fuze": message["fuze"],
+                        'caliber': 155
+                    }
+                }
+                DCS_Link.insert_shot(shot)
+                time.sleep(random.normal(8.5, 0.5))
+
+
+
+
+    return
+
 def handle_messages(messages: list[dict]) -> None:
 
     for key, message in messages.items():
-        #check message needs to be implemented properly
+
         if key == "Call For Fire":
-            number_of_rounds = message["Number Of Rounds"]
-            latitude, longitude = parse_coordinate(message["Location"]["Coordinate"], message["Location"]["System"])
+            elevation = int(message["Location"]["Elevation"])
+            fuze = message["Fuze"]
 
-            print("Shot!")
+            match (message["Warning Order"]):
 
-            for index in range(int(number_of_rounds)):
+                case "adjust_fire":
+                    ammunition_type = "high_explosive"
+                    number_of_rounds = 1
+                    number_of_guns = 1
 
-                for i in range(message["Number Of Guns"]):
-                    shot = {
-                        'Simulated Shot': {
-                            'Time Fired': get_current_mission_time(),
-                            'Location' : {
-                                'System': message["Location"]["System"],
-                                'Latitude': random.normal(float(latitude), 35),
-                                'Longitude': random.normal(float(longitude), 35),
-                                'Elevation': 60,
-                            },
-                            'Time Of Flight': 15,
-                            'Ammunition Type': message["Ammunition"],
-                            'Caliber': 60
-                        }
+                case "fire_for_effect":
+                    ammunition_type = "high_explosive"
+                    number_of_rounds = message["Number Of Rounds"]
+                    number_of_guns = message["Number Of Guns"]
+
+                case "surpress":
+                    ammunition_type = "high_explosive"
+                    number_of_rounds = message["Number Of Rounds"]
+                    number_of_guns = message["Number Of Guns"]
+
+                case "mark":
+                    ammunition_type = "illumination"
+                    number_of_rounds = 1
+                    number_of_guns = 1
+
+                case "illumination":
+                    ammunition_type = "illumination"
+                    number_of_rounds = 1
+                    number_of_guns = 1
+                    elevation += 600
+                    fuze = "time"
+
+                case _:
+
+                    raise ValueError("That shouldn't happen! Somehow the desired effect is unknown to me!")
+
+            coordinate_system = message["Location"]["System"]
+            
+            match (coordinate_system): 
+
+                case "mgrs":
+                    parts = str(message["Location"]["Coordinate"]).split(' ')
+
+                    if len(parts) != 4:
+
+                        raise ValueError("Somehow the coordinate doesn't match!")
+                    
+                    location = {
+                        "UTMZone": parts[0],
+                        "MGRSDigraph": parts[1],
+                        "Easting": int(parts[2]),
+                        "Northing": int(parts[3])
                     }
-                    DCS_Link.insert_shot(shot)
-                    time.sleep(random.normal(1, 0.1))
 
-                time.sleep(random.normal(8.5, 1.0))
+                case _:
+
+                    raise ValueError("That shouldn't happen the coordinate system is unknown to me!")
+
+
+            
+            
+            fire_order = {
+                "fire_order": {
+                    "target_location": {
+                        "system": coordinate_system,
+                        "coordinate": location,
+                        "elevation": elevation
+                    },
+                    "ammunition": ammunition_type,
+                    "fuze": fuze,
+                    "number_of_rounds": number_of_rounds,
+                    "time_on_target": 0
+                }
+            }
+            print(type(fire_order))
+
+            guns: list[threading.Thread] = []
+
+            for index in range(number_of_guns):
+                new_gun = threading.Thread(target = simulate_gun, args = (fire_order,))
+                new_gun.start()
+                guns.append(new_gun)
+
+            for gun in guns:
+                gun.join()
 
             print("Rounds complete!")
 
+        else:
+
+            raise ValueError("Message is unknown to me!")
+        
+    return
 
 def data_polling() -> None:
     global current_mission_time
 
     while True:
         current_mission_time = DCS_Link.get_mission_time()
+        #arty.update(int(current_mission_time / 1000))
         messages = Webserver.main.polling_data()
 
         if messages:
@@ -73,7 +175,12 @@ def data_polling() -> None:
 
     return
 
+def setup() -> None:
+
+    return
+
 if __name__ == "__main__":
+    setup()
     print("Calling DCS-Link Start!")
     DCS_Link.start()
     print("Calling Webserver Start")

@@ -5,8 +5,8 @@ import os
 import threading
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from .routes import init_routes
-from .data import data_queue
+from Webserver.routes import init_routes
+from Webserver.data import data_queue
 
 app = Flask(__name__)
 webserver_thread = None

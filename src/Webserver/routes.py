@@ -1,5 +1,9 @@
 from flask import render_template, request
-from .data import data_queue
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from Webserver.data import data_queue
 
 def init_routes(app):
     global data_queue
@@ -10,20 +14,23 @@ def init_routes(app):
 
     @app.route('/submit', methods = ['POST'])
     def submit():
-        grid = request.form.get('grid')
+        warning_order = request.form.get('warning_order')
+        coordinate_system = request.form.get('coordinate_system')
+        coordinate = request.form.get('grid')
         elevation = request.form.get('elevation')
-        desired_effect = request.form.get('desired_effect')
+        fuze = request.form.get('fuze')
         number_of_rounds = request.form.get('number_of_rounds', type = int)
         number_of_guns = request.form.get('number_of_guns', type = int)
 
         new_call_for_fire = {
             "Call For Fire": {
+                "Warning Order": warning_order,
                 "Location": {
-                    "System": "Internal",
-                    "Coordinate": grid,
+                    "System": coordinate_system,
+                    "Coordinate": coordinate,
                     "Elevation": elevation
                 },
-                "Ammunition": desired_effect,
+                "Fuze": fuze,
                 "Number Of Rounds": number_of_rounds,
                 "Number Of Guns": number_of_guns
             }

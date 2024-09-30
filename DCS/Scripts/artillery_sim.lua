@@ -59,33 +59,48 @@ local function close_socket()
 end
 
 local function execute_simulated_shot(shot)
-    local coordinate2d = {
-        x = shot["Location"]["Latitude"], 
-        z = shot["Location"]["Longitude"],
-    }
-    local elevation = land.getHeight(coordinate2d)
-    local coordinate3d = {
+    local caliber = shot["caliber"]
+    
+    -- function to calculate internal coordinates from mgrs
+    latitude, longitude = coord.MGRStoLL(shot["location"]["coordinate"])
+    trigger.action.outText("Latitude", 5)
+    trigger.action.outText(latitude, 5)
+    trigger.action.outText("Longitude", 5)
+    trigger.action.outText(longitude, 5)
+    coordinate2d = coord.LLtoLO(latitude, longitude)
+    coordinate3d = {
         x = coordinate2d.x,
-        z = coordinate2d.z,
-        y = elevation
-    }
-    local caliber = shot["Caliber"]
+        y = land.getHeight(coordinate2d),
+        z = coordinate2d.z
+    }    
 
-    if shot["Ammunition Type"] == "high_explosive" then
+    if shot["ammunition_type"] == "high_explosive" then
+
+        if shot["fuze"] == "impact" then
+            coordinate3d.y = coordinate3d.y + 8
+
+        elseif shot["fuze"] == "airburst" then
+            coordinate3d.y = coordinate3d.y + 30
+        end
+
         trigger.action.outText("Executing shot!", 5)
         trigger.action.explosion(coordinate3d, caliber)
-    
-    elseif shot["Ammunition Type"] == "high_explosive_air_burst" then
-        trigger.action.outText("Executing Airburst!", 5)
-        coordinate3d.y = coordinate3d.y + 30
-        trigger.action.explosion(coordinate3d, caliber)
 
-    elseif shot["Ammunition Type"] == "illumination" then
+    elseif shot["ammunition_type"] == "illumination" then
+
+        if shot["fuze"] == "time" then
+            local elevation = shot["location"]["elevation"]
+
+            if elevation > coordinate3d.y then
+                coordinate3d.y = elevation
+            end
+
+        end
+
         trigger.action.outText("Executing Illumination!", 5)
-        coordinate3d.y = coordinate3d.y + 600
         trigger.action.illuminationBomb(coordinate3d)
 
-    elseif shot["Ammunition Type"] == "smoke" then
+    elseif shot["ammunition_type"] == "smoke" then
         trigger.action.outText("Executing Smoke!", 5)
         trigger.action.smoke(coordinate3d, trigger.smokeColor.White)
         
@@ -96,7 +111,7 @@ end
 
 local function process_simulated_shot(shot)
     trigger.action.outText("Processing Shot", 1)
-    timer.scheduleFunction(execute_simulated_shot, shot, shot["Time Fired"] + shot["Time Of Flight"] - timer.getTime0())
+    timer.scheduleFunction(execute_simulated_shot, shot, shot["time_fired"] + shot["time_of_flight"] - timer.getTime0())
 
     return
 end

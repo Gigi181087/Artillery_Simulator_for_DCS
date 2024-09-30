@@ -1,32 +1,166 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Formular</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artillery Terminal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .highlight {
+            border: 2px solid yellow;
+        }
+    </style>
 </head>
 <body>
-    <form method="POST" action="/submit">
-        <label for="grid">Grid:</label><br>
-        <input type="text" name="grid" required><br><br>
+    <form method="POST" action="/submit" class="form-container">
+        
+        <div class="form-group">
+            <label for="warning_order">Warning Order:</label>
+            <select name="warning_order" id="desired_effect" required title="Select the desired effect for the artillery">
+                <option value="adjust_fire">Adjust Fire (INOP)</option>
+                <option value="fire_for_effect">Fire for Effect</option>
+                <option value="suppress">Suppress (INOP)</option>
+                <option value="mark">Mark (INOP)</option>
+                <option value="illumination">Illumination</option>
+            </select>
+        </div>
 
-        <label for="elevation">Elevation:</label><br>
-        <input type="number" name="elevation" required><br><br>
+        <div class="form-group">
+            <label for="coordinate_system">Coordinate System: </label>
+            <select name="coordinate_system" id="coordinate_system" required>
+                <option value="mgrs">MGRS</option>
+                <option value="geo">Geo (INOP)</option>
+                <option value="geo_decimal">Geo decimal (INOP)</option>
+            </select>
+        </div>
 
-        <label for="desired_effect">Desired Effect:</label><br>
-        <select name="desired_effect" id="desired_effect" required>
-            <option value="high_explosive">High Explosive</option>
-            <option value="high_explosive_air_burst">High Explosive Air Burst</option>
-            <option value="illumination">Illumination</option>
-            <option value="smoke">Smoke</option>
-        </select><br><br>
+        <div class="form-group">
+            <label for="grid">Grid:</label>
+            <input type="text" name="grid" id="grid" required title="Enter the grid coordinates" placeholder="33T GG">
+        </div>
 
-        <label for="number_of_rounds">Number of Rounds:</label><br>
-        <input type="number" name="number_of_rounds" required><br><br>
+        <div class="form-group">
+            <label for="elevation">Elevation:</label>
+            <input type="number" name="elevation" required title="Specify the elevation in meters">
+        </div>
 
-        <label for="number_of_guns">Number of Guns:</label><br>
-        <input type="number" name="number_of_guns" required><br><br>
+        <div class="form-group">
+            <label for="fuze">Fuze:</label>
+            <select name="fuze" id="fuze" title="Choose the fuze">
+                <option value="impact">Impact</option>
+                <option value="delay">Delay</option>
+                <option value="airburst">Airburst</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="number_of_rounds">Number of Rounds:</label>
+            <input type="number" name="number_of_rounds" required title="Enter the number of rounds to fire">
+        </div>
+
+        <div class="form-group">
+            <label for="number_of_guns">Number of Guns:</label>
+            <input type="number" name="number_of_guns" required title="Enter the number of guns to use">
+        </div>
 
         <input type="submit" value="Send">
     </form>
+
+    <script>
+        // Funktion zur Aktualisierung der Border-Style
+        function updateBorder(field) {
+            if (field.value.length < 7) {
+                field.classList.add('highlight'); // Gelbe Umrandung hinzufügen
+            } else {
+                field.classList.remove('highlight'); // Gelbe Umrandung entfernen
+            }
+        }
+
+        // Funktion zur automatischen Formatierung des Grid-Feldes
+        function formatGridInput(event) {
+            let value = event.target.value.replace(/\s+/g, ''); // Entferne alle Leerzeichen
+            if (value.length >= 4 && value.slice(2, 4) !== ' ') {
+                value = value.slice(0, 2) + value.slice(2, 3) + ' ' + value.slice(3); // Leerzeichen nach 33T
+            }
+            if (value.length >= 7 && value.slice(6, 7) !== ' ') {
+                value = value.slice(0, 6) + ' ' + value.slice(6); // Leerzeichen nach GG
+            }
+            event.target.value = value.toUpperCase(); // Setze den formatierten Wert in Großbuchstaben
+
+            // Umrandung anpassen
+            updateBorder(event.target);
+        }
+
+        // Funktion zur Validierung der Eingabe
+        function validateGridInput(event) {
+            const grid_field = event.target;
+            const value = event.target.value;
+            const cursorPosition = grid_field.selectionStart;
+
+            // alle Ausgänge
+            if (cursorPosition < 2) {
+                if (!/[0-9]/.test(event.key)) {
+                    event.preventDefault();
+                    return;
+                }
+            } else if (cursorPosition < 6) {
+                if (!/[A-Za-z]/.test(event.key)) {
+                    event.preventDefault();
+                    return;
+                }
+            } else if (cursorPosition < 17) {
+                if (!/[0-9]/.test(event.key)) {
+                    event.preventDefault();
+                    return;
+                }
+            } else {
+                event.preventDefault();
+                return;
+            }
+        }
+
+        // Funktion zur Validierung der Zeichenanzahl nach "GG" und zum Einfügen eines Leerzeichens
+        function validateGridOnBlur(event) {
+            const grid_value = event.target.value;
+            const parts = grid_value.split(" ");
+            
+            if (parts.length < 3) {
+                return; // Wenn nicht genügend Teile vorhanden sind (nicht genug Eingaben), tue nichts
+            }
+
+            const numbers_part = parts[2]; // Nimm den Teil nach "GG" (3. Abschnitt)
+
+            if (numbers_part.length % 2 !== 0) {
+                // Zeige Fehlermeldung bei ungerader Anzahl
+                document.getElementById('error-message').style.display = 'inline';
+                event.target.classList.add('error'); // Rote Umrandung
+            } else {
+                // Teile die Zeichenfolge in zwei Teile auf und füge ein Leerzeichen in der Mitte hinzu
+                const mid = numbers_part.length / 2;
+                const formatted_numbers = numbers_part.slice(0, mid) + " " + numbers_part.slice(mid);
+                parts[2] = formatted_numbers;
+
+                // Setze den formatierten Wert zurück ins Feld
+                event.target.value = parts.join(" ");
+
+                // Entferne Fehlermeldung, wenn alles korrekt ist
+                document.getElementById('error-message').style.display = 'none';
+                event.target.classList.remove('error');
+            }
+        }
+
+        // Event Listener zur Formatierung des Eingabefeldes bei Eingabe
+        document.getElementById('grid').addEventListener('input', formatGridInput);
+        // Event Listener zur Validierung der Eingabe
+        document.getElementById('grid').addEventListener('keypress', validateGridInput);
+        document.getElementById('grid').addEventListener('blur', validateGridOnBlur);
+        // Event Listener zur Aktualisierung der Border-Style bei Eingabe
+        document.getElementById('grid').addEventListener('input', function(event) {
+            updateBorder(event.target);
+        });
+
+        // Tooltip und Wert aktualisieren, wenn die Seite geladen wird
+        updateBorder(document.getElementById('grid')); // Umrandung für den initialen Wert anpassen
+    </script>
 </body>
 </html>
