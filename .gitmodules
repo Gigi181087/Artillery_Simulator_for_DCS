@@ -1,0 +1,3 @@
+[submodule "src/Submodules/Artillery_Sim"]
+	path = src/Submodules/Artillery_Sim
+	url = https://github.com/Gigi181087/artillery_simulator.git
