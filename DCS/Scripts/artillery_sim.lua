@@ -19,7 +19,6 @@ local function initalize_module()
 end
 
 local function connect_to_server()
-    trigger.action.outText("Attempting connection", 1)
 
     if not artillery_simulator_connection_socket then
         artillery_simulator_connection_socket = socket.tcp()
@@ -29,20 +28,15 @@ local function connect_to_server()
     host = "localhost"
     port = 15000
     local result, error = artillery_simulator_connection_socket:connect(host, port)
-    trigger.action.outText(error, 1)
 
     if result then
-        trigger.action.outText("Connected!", 1)
+        trigger.action.outText("Connected!", 10)
         artillery_simulator_connection_socket:setoption("tcp-nodelay", true)
         is_connected = true
 
     elseif error == "already connected" then
-        trigger.action.outText("Connected!", 1)
+        trigger.action.outText("Connected!", 10)
         is_connected = true
-    
-    else
-        trigger.action.outText("Failed!", 1)
-
     end
 
 end
@@ -63,10 +57,6 @@ local function execute_simulated_shot(shot)
     
     -- function to calculate internal coordinates from mgrs
     latitude, longitude = coord.MGRStoLL(shot["location"]["coordinate"])
-    trigger.action.outText("Latitude", 5)
-    trigger.action.outText(latitude, 5)
-    trigger.action.outText("Longitude", 5)
-    trigger.action.outText(longitude, 5)
     coordinate2d = coord.LLtoLO(latitude, longitude)
     coordinate3d = {
         x = coordinate2d.x,
@@ -83,7 +73,6 @@ local function execute_simulated_shot(shot)
             coordinate3d.y = coordinate3d.y + 30
         end
 
-        trigger.action.outText("Executing shot!", 5)
         trigger.action.explosion(coordinate3d, caliber)
 
     elseif shot["ammunition_type"] == "illumination" then
@@ -97,11 +86,9 @@ local function execute_simulated_shot(shot)
 
         end
 
-        trigger.action.outText("Executing Illumination!", 5)
         trigger.action.illuminationBomb(coordinate3d)
 
     elseif shot["ammunition_type"] == "smoke" then
-        trigger.action.outText("Executing Smoke!", 5)
         trigger.action.smoke(coordinate3d, trigger.smokeColor.White)
         
     end
@@ -110,7 +97,6 @@ local function execute_simulated_shot(shot)
 end
 
 local function process_simulated_shot(shot)
-    trigger.action.outText("Processing Shot", 1)
     timer.scheduleFunction(execute_simulated_shot, shot, shot["time_fired"] + shot["time_of_flight"] - timer.getTime0())
 
     return
@@ -134,6 +120,7 @@ local function send_mission_time()
             result, error = artillery_simulator_connection_socket:send(json_string .. "\n")
 
             if error == "closed" then
+                trigger.action.outText("Connection lost!", 10)
                 close_socket()
             end
 
@@ -159,8 +146,8 @@ local function receive_data()
             trigger.action.outText(data, 10)
             local message = JSON:decode(data)
 
-            if message["Simulated Shot"] then
-                process_simulated_shot(message["Simulated Shot"])
+            if message["simulated_shot"] then
+                process_simulated_shot(message["simulated_shot"])
             end
 
         elseif error == 'timeout' then
@@ -168,6 +155,7 @@ local function receive_data()
             break
 
         elseif error == "closed" then
+            trigger.action.outText("Connection lost!", 10)
             close_socket()
 
             break
@@ -179,6 +167,8 @@ local function loop()
 
     if not is_connected then
         connect_to_server()
+
+        return timer.getTime() + 2
     end
 
     send_mission_time()

@@ -45,13 +45,15 @@ def simulate_gun(fire_order: dict) -> None:
                     "elevation": message["target_location"]["elevation"]
                 }    
                 shot = {
-                    'Simulated Shot': {
+                    'simulated_shot': {
                         'time_fired': get_current_mission_time(),
                         'location' : location,
                         'time_of_flight': random.normal(15, 0.25),
                         'ammunition_type': message["ammunition"],
                         "fuze": message["fuze"],
-                        'caliber': 155
+                        'caliber': 155,
+                        'direction': 295.0,
+                        'impact_angle': 75.0
                     }
                 }
                 DCS_Link.insert_shot(shot)
