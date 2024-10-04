@@ -56,40 +56,37 @@ local function execute_simulated_shot(shot)
     local caliber = shot["caliber"]
     
     -- function to calculate internal coordinates from mgrs
-    latitude, longitude = coord.MGRStoLL(shot["location"]["coordinate"])
-    coordinate2d = coord.LLtoLO(latitude, longitude)
-    coordinate3d = {
-        x = coordinate2d.x,
-        y = land.getHeight(coordinate2d),
-        z = coordinate2d.z
-    }    
+    local latitude, longitude = coord.MGRStoLL(shot["location"]["coordinate"])
+    local coordinate = coord.LLtoLO(latitude, longitude)
+    coordinate.y = land.getHeight({x = coordinate.x, y = coordinate.z})
+    trigger.action.outText(coordinate.y, 10)    
 
     if shot["ammunition_type"] == "high_explosive" then
 
         if shot["fuze"] == "impact" then
-            coordinate3d.y = coordinate3d.y + 8
+            coordinate.y = coordinate.y
 
         elseif shot["fuze"] == "airburst" then
-            coordinate3d.y = coordinate3d.y + 30
+            coordinate.y = coordinate.y + 10
         end
 
-        trigger.action.explosion(coordinate3d, caliber)
+        trigger.action.explosion(coordinate, caliber)
 
     elseif shot["ammunition_type"] == "illumination" then
 
         if shot["fuze"] == "time" then
             local elevation = shot["location"]["elevation"]
 
-            if elevation > coordinate3d.y then
-                coordinate3d.y = elevation
+            if elevation > coordinate.y then
+                coordinate.y = elevation
             end
 
         end
 
-        trigger.action.illuminationBomb(coordinate3d)
+        trigger.action.illuminationBomb(coordinate)
 
     elseif shot["ammunition_type"] == "smoke" then
-        trigger.action.smoke(coordinate3d, trigger.smokeColor.White)
+        trigger.action.smoke(coordinate, trigger.smokeColor.White)
         
     end
 
