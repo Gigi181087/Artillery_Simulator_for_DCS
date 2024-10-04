@@ -20,7 +20,7 @@ def start():
     
     print("Starting Webserver!")
     init_routes(app)
-    webserver_thread = threading.Thread(target=lambda: app.run(debug=False))
+    webserver_thread = threading.Thread(target=lambda: app.run(host = '0.0.0.0', debug=False))
     webserver_thread.start()
 
     return
