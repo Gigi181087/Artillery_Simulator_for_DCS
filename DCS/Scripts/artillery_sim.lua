@@ -79,7 +79,7 @@ end
 
 local function calculate_late_impact(start_position, vector)
 
-    return land.getIP(start_position, vector, 2000)
+    return land.getIP(start_position, vector, 10000)
 end    
     
     
