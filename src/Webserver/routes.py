@@ -21,6 +21,8 @@ def init_routes(app):
         fuze = request.form.get('fuze')
         number_of_rounds = request.form.get('number_of_rounds', type = int)
         number_of_guns = request.form.get('number_of_guns', type = int)
+        direction = request.form.get('direction', type = float)
+        impact_angle = request.form.get('impact_angle', type = float)
 
         new_call_for_fire = {
             "Call For Fire": {
@@ -32,7 +34,9 @@ def init_routes(app):
                 },
                 "Fuze": fuze,
                 "Number Of Rounds": number_of_rounds,
-                "Number Of Guns": number_of_guns
+                "Number Of Guns": number_of_guns,
+                "direction": direction,
+                "impact_angle": impact_angle
             }
         }
         data_queue.put(new_call_for_fire)

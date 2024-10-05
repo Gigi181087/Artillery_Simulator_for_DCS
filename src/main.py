@@ -48,12 +48,12 @@ def simulate_gun(fire_order: dict) -> None:
                     'simulated_shot': {
                         'time_fired': get_current_mission_time(),
                         'location' : location,
-                        'time_of_flight': random.normal(15, 0.25),
+                        'time_of_flight': random.normal(5, 0.25),
                         'ammunition_type': message["ammunition"],
-                        "fuze": message["fuze"],
+                        'fuze': message["fuze"],
                         'caliber': 155,
-                        'direction': 295.0,
-                        'impact_angle': 75.0
+                        'direction': message["direction"],
+                        'impact_angle': message["impact_angle"]
                     }
                 }
                 DCS_Link.insert_shot(shot)
@@ -71,6 +71,8 @@ def handle_messages(messages: list[dict]) -> None:
         if key == "Call For Fire":
             elevation = int(message["Location"]["Elevation"])
             fuze = message["Fuze"]
+            direction = message["direction"]
+            impact_angle = message["impact_angle"]
 
             match (message["Warning Order"]):
 
@@ -140,7 +142,9 @@ def handle_messages(messages: list[dict]) -> None:
                     "ammunition": ammunition_type,
                     "fuze": fuze,
                     "number_of_rounds": number_of_rounds,
-                    "time_on_target": 0
+                    "time_on_target": 0,
+                    "direction": direction,
+                    "impact_angle": impact_angle
                 }
             }
             print(type(fire_order))

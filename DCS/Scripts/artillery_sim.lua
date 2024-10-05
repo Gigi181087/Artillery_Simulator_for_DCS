@@ -52,42 +52,93 @@ local function close_socket()
     return
 end
 
-local function execute_simulated_shot(shot)
-    local caliber = shot["caliber"]
+local function get_vector(position, azimuth, elevation)
+    local azimuth_rad = math.rad(azimuth)
+    local elevation_rad = math.rad(elevation)
+
+    -- calculate normalized vector
+    local vector = {
+        x = math.cos(elevation_rad) * math.cos(azimuth_rad),
+        y = math.sin(-elevation_rad),
+        z = math.cos(elevation_rad) * math.sin(azimuth_rad)
+    }
+
+    return vector
+end
+
+local function calculate_early_impact(start_position, vector)
+    -- get point in the distance
+    local distance_point = {
+        x = start_position.x - vector.x * 2000,
+        y = start_position.y - vector.y * 2000,
+        z = start_position.z - vector.z * 2000
+    }
+
+    return land.getIP(distance_point, vector, 2000)
+end
+
+local function calculate_late_impact(start_position, vector)
+
+    return land.getIP(start_position, vector, 2000)
+end    
     
+    
+
+local function execute_simulated_shot(shot)
+    trigger.action.outText("Executing shot!", 10)
+    local caliber = shot["caliber"]
+    local fuze = shot["fuze"]
     -- function to calculate internal coordinates from mgrs
     local latitude, longitude = coord.MGRStoLL(shot["location"]["coordinate"])
-    local coordinate = coord.LLtoLO(latitude, longitude)
-    coordinate.y = land.getHeight({x = coordinate.x, y = coordinate.z})
-    trigger.action.outText(coordinate.y, 10)    
+    local coordinate = coord.LLtoLO(latitude, longitude, shot["location"]["elevation"])
+    
+    local vector = get_vector(coordinate, shot["direction"], shot["impact_angle"])
+
+    if fuze == "airburst" then
+        coordinate.y = coordinate.y - 8
+
+    end
+
+    -- check for early impact
+    local impact_coordinate = calculate_early_impact(coordinate, vector)
+
+    if impact_coordinate == nil then
+        trigger.action.outText("No early impact!", 10)
+
+        if fuze ~= "time" then
+            impact_coordinate = calculate_late_impact(coordinate, vector)
+            
+        else
+            impact_coordinate = coordinate
+
+        end
+
+        if impact_coordinate == nil then
+            trigger.action.outText("Error, impact ccordinate is nil!", 10)
+        end
+        
+    end
 
     if shot["ammunition_type"] == "high_explosive" then
 
-        if shot["fuze"] == "impact" then
-            coordinate.y = coordinate.y
+        if fuze == "airburst" then
+            impact_coordinate.y = impact_coordinate.y + 8
 
-        elseif shot["fuze"] == "airburst" then
-            coordinate.y = coordinate.y + 10
+        elseif fuze == "delay" then
+            impact_coordinate.y = impact_coordinate.y - 3
+
         end
 
-        trigger.action.explosion(coordinate, caliber)
+        trigger.action.outText("Latitude: " .. impact_coordinate.x .. " Longitude: " .. impact_coordinate.z .. " Elevation: " .. impact_coordinate.y, 10)
+        trigger.action.explosion(impact_coordinate, caliber)
 
     elseif shot["ammunition_type"] == "illumination" then
-
-        if shot["fuze"] == "time" then
-            local elevation = shot["location"]["elevation"]
-
-            if elevation > coordinate.y then
-                coordinate.y = elevation
-            end
-
-        end
 
         trigger.action.illuminationBomb(coordinate)
 
     elseif shot["ammunition_type"] == "smoke" then
         trigger.action.smoke(coordinate, trigger.smokeColor.White)
-        
+
     end
 
     return nil
